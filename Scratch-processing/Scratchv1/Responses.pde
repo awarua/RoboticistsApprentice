@@ -33,6 +33,32 @@ public class GreetResponse extends HttpServlet {
   }
 }
 
+public class ScratchPositionResponse extends HttpServlet {
+
+  @Override public void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+    response.setContentType("text/html");
+    PrintWriter out = response.getWriter();
+
+    println("ScratchPositionResponse");
+
+    String strPosn = request.getPathInfo().split("/")[1];
+    String[] aryPosn = strPosn.split(",");
+
+    printArray(aryPosn);
+
+    scratchX = Float.parseFloat(aryPosn[0]);
+    scratchY = Float.parseFloat(aryPosn[1]);
+    scratchR = Float.parseFloat(aryPosn[2]);
+    scratchC = Float.parseFloat(aryPosn[3]);
+    
+    //scratchX = Float.parseFloat(strX);
+    
+    //println(scratchX);
+    
+    out.println(simpleHtmlPage("scratchPosition"));
+  }
+}
+
 public class ScratchXResponse extends HttpServlet {
 
   @Override public void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {

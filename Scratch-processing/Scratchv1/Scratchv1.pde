@@ -35,7 +35,7 @@ int videoheight = 480;
 boolean movetimestart = false;
 float frontblobarea = 0;
 float backblobarea = 0;
-int xbeeExplorerPort = 1;
+int xbeeExplorerPort = 7;
 int baudRate = 57600;
 boolean turnstart = false;
 byte[] msg = new byte[10];
@@ -264,6 +264,7 @@ void startServer() throws Exception
   context.setContextPath("/"); 
   context.addServlet(new ServletHolder(new PollResponse()), "/poll"); 
   context.addServlet(new ServletHolder(new GreetResponse()), "/greet"); 
+  context.addServlet(new ServletHolder(new ScratchPositionResponse()), "/scratchPosition/*"); 
   context.addServlet(new ServletHolder(new ScratchXResponse()), "/scratchX/*"); 
   context.addServlet(new ServletHolder(new ScratchYResponse()), "/scratchY/*"); 
   context.addServlet(new ServletHolder(new ScratchRResponse()), "/scratchR/*"); 

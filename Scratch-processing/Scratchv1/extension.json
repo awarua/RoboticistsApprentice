@@ -13,7 +13,8 @@
 		[" ", "set CubeBot heading to %n",        "scratchR", 0],
 		[" ", "set CubeBot colour to %n",        "scratchC", 0],
 		[" ", "set Simulation start to %n",        "scratchstart", 0],
-		[" ", "set CubeBot start to %n",        "botstart", 0]
+		[" ", "set CubeBot start to %n",        "botstart", 0],
+		[" ", "set CubeBot Position to %s",    "scratchPosition", "0, 0, 0, 0"]
 		// ["h", "when collision detected",   "when_collision"],
 	]
 }
