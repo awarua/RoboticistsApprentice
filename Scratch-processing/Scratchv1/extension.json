@@ -1,0 +1,19 @@
+{
+	"useHTTP": false,
+	"extensionName": "CubeBot",
+	"extensionPort": 20807,
+	"blockSpecs": [
+		[" ", "say hello",                        "greet"],
+		["r", "CubeBot X position",               "botX"],
+		["r", "CubeBot Y position",               "botY"],
+		["r", "CubeBot heading",                  "botR"],
+		["r", "CubeBot Ready",					  "botT"],
+		[" ", "set CubeBot x position to %n",     "scratchX", 0],
+		[" ", "set CubeBot y position to %n",     "scratchY", 0],
+		[" ", "set CubeBot heading to %n",        "scratchR", 0],
+		[" ", "set CubeBot colour to %n",        "scratchC", 0],
+		[" ", "set Simulation start to %n",        "scratchstart", 0],
+		[" ", "set CubeBot start to %n",        "botstart", 0]
+		// ["h", "when collision detected",   "when_collision"],
+	]
+}
