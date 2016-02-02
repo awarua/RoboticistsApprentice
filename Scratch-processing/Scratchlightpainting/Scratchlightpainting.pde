@@ -29,48 +29,50 @@ float scratchR;
 float scratchC;
 float scratchstart;
 float botstart;
-float scratchready;
-float botX, botY, botR, newscratchR, botT, targetx, targety;
+float botX, botY, botR, newscratchR, botT;
+int xdistance = 0;
+int ydistance = 0;
 int videowidth = 640;
 int videoheight = 480;
-
-float frontblobarea = 0;
-float backblobarea = 0;
+int simh = -90;
+float[] sim = {580/2, 580/2};
+boolean move = false;
+int frontblobarea = 0;
+int backblobarea = 0;
 int xbeeExplorerPort = 1;
 int baudRate = 57600;
 boolean forward = false;
 byte[] msg = new byte[10];
-PImage birdseye; 
-int floorWidth = 578;
+PImage birdseye, threshold, screenshot; 
+int floorWidth = 580;
 int floorHeight = 580;
-float turnfactor = 0;
-float diffR, lastx1, lasty1, lastx2, lasty2, lastx3, lasty3, lastx4, lastscratchC, lastscratchX, lastscratchY, distx, disty, startx, starty;
-int[] tile1 = {107, 159, 0};
-int[] tile2 = {285, 263, 0};
-int[] tile3 = {469, 178, 0};
-int[] tile4 = {280, 81, 0};
+int lastscratchC, startx, starty;
+int[] tile1 = {110, 185, 0};
+int[] tile2 = {290, 279, 0};
+int[] tile3 = {469, 187, 0};
+int[] tile4 = {278, 100, 0};
 int[][] tilepoints = {tile1, tile2, tile3, tile4}; 
 int[] frontblob ={0, 0};
 int[] backblob = {0, 0};
-float[] fullblob = {0, 0};
-float simh = -90;
-int[] sim = {578/2, 580/2};
-float heading = 0;
-PVector dir = new PVector(0, 0);
-float stepsizex, stepsizey;
-
-int movetime=0;
-float desiredheading = 0;
+int[] fullblob = {580/2, 580/2};
+float lastscratchX =  580/2;
+float lastscratchY = 580/2;
+float heading = -90;
+float desiredheading = -90;
 boolean turn = false;
-int colornum = 4;
-boolean colorchange = false;
 Point[] points;
 color c;
-
-boolean sayHello = false;
+float newscratchX = sim[0];
+float newscratchY = sim[1];
+boolean start;
 
 void settings() {
-  size(floorWidth, floorHeight);
+  botstart = 1;
+  if (botstart == 1) {
+    size(3*floorWidth, floorHeight);
+  } else {
+    size(floorWidth, floorHeight);
+  }
 }
 void setup() {
   try {
@@ -79,14 +81,10 @@ void setup() {
   catch (Exception e) {
     println("Exception starting server");
   }
-  //loads original video into opencv
-  video = new Capture(this, videowidth, videoheight);
-  //THIS HAS TO BE ADJUSTED TO VIDEO WIDTH
-  opencv = new OpenCV(this, videowidth, videoheight);
-  opencv.loadCascade(OpenCV.CASCADE_FRONTALFACE);  
-
+  //frameRate(100);
   //create the image to store thresholded and birdseye images into
-  birdseye = createImage(578, 580, ARGB); 
+  birdseye = createImage(580, 580, ARGB); 
+  threshold = createImage(580, 580, ARGB);
 
   //open xbeeExplorer
   xbeeExplorer = new XBee(xbeeExplorerPort, baudRate, this);
@@ -104,37 +102,19 @@ void setup() {
   // [8] seqno:  (just checks that this seqno != seqno of previous).
   // [9] crc: Global variable sent & incremeneted with each xBee message.
 
-  botT = 0;
-
-  video.start();
 
   //initialize variables for scratch
+  botT = 0;
   scratchX = 0;
   scratchY = 0;
   scratchR = 0;
   scratchC = 0;
   botstart = 0;
   scratchstart = 0;
-  scratchready = 0;
 
-  noStroke();
   background(255);
+  msg [4] = byte(3); //colour
   xbeeExplorer.lightson(msg);
-}
-
-void draw() {
-
-  botX = fullblob[0];
-  botY = fullblob[1];
-  botR = heading;
-  float newscratchX = (scratchX+(480/2))+50;
-  float newscratchY = ((scratchY-(360/2))*-1)+110;
-
-  if ((scratchR >=-90)&&(scratchR<=180)) {
-    newscratchR = scratchR-90;
-  } else {
-    newscratchR = scratchR+270;
-  }
   if (scratchC == 1) {
     c = color(255, 0, 0);
   }
@@ -153,61 +133,111 @@ void draw() {
   if (scratchC == 6) {
     c = color(255);
   }
+  //loads original video into opencv
+  video = new Capture(this, videowidth, videoheight);
+  //THIS HAS TO BE ADJUSTED TO VIDEO WIDTH
+  opencv = new OpenCV(this, videowidth, videoheight);
+  opencv.loadCascade(OpenCV.CASCADE_FRONTALFACE); 
+  video.start();
+
+  start = false;
+  botstart = 1;
+}
+
+void draw() {
+  if ((botstart == 1)&&(start == false)) {
+    opencv.loadImage(video); 
+    opencv.toPImage(warpPerspective(tilepoints, floorWidth, floorHeight), birdseye);
+    image(birdseye, 1156, 0);
+  }
+  if ((scratchstart == 1)&&(start == false)) {
+    background(0);
+  }
+  start = true;
+  float oldscratchX = newscratchX;
+  float oldscratchY = newscratchY;
+  newscratchX = (scratchX+(480/2))+50;
+  newscratchY = ((scratchY-(360/2))*-1)+110;
+
+  if ((scratchR >=-90)&&(scratchR<=180)) {
+    newscratchR = scratchR-90;
+  } else {
+    newscratchR = scratchR+270;
+  }
+
 
   if ((scratchC != 6)&&(scratchstart == 1)) {
-    fill(c);
-    float diffx = newscratchX - sim[0];
-    float diffy = newscratchY - sim[1]; 
+    if ((newscratchX!=oldscratchX)||(newscratchY!=oldscratchY)) {
+      startx = int(sim[0]);
+      starty = int(sim[1]);
+      botT = 0;
 
-    diffR = radians(newscratchR);
-  
+      forward = true;
+    }
 
-    println(stepsizex +"   "+stepsizey);
-    if ((diffx < -1)) {
-      botT = 0;
-      sim[0]-= stepsizex;
+    if (forward == true) {
+      if (scratchC == 1) {
+        c = color(255, 0, 0);
+      }
+      if (scratchC == 2) {
+        c = color(255, 255, 0);
+      }
+      if (scratchC == 3) {
+        c = color(0, 255, 0);
+      }
+      if (scratchC == 4) {
+        c = color(0, 0, 255);
+      }
+      if (scratchC == 5) {
+        c = color(255, 0, 255);
+      }
+      if (scratchC == 6) {
+        c = color(255);
+      }
+      for (int loop = 0; loop <= 10; loop++) {
+        sim[0]  = int(lerp(startx, newscratchX, loop/10.0));
+        sim[1] = int(lerp(starty, newscratchY, loop/10.0));
+        fill(c);
+        rectMode(CENTER);
+        pushMatrix();
+        noStroke();
+        translate(sim[0], sim[1]);
+        rotate(radians(newscratchR));
+        rect(0, 0, 30, 30);
+        popMatrix();
+      }
+      forward= false;
+      botT = 1;
     }
-    if ((diffx > 1)) {
-      botT = 0;
-      sim[0]+= stepsizex;
-    }
-    if ((diffy < -1)) {
-      botT = 0;
-      sim[1]-=stepsizey;
-    }
-    if ((diffy > 1)) {
-      botT = 0;
-      sim[1]+=stepsizey;
-    } else {
-      botT=1;
-    }
-    if (diffR!=0) {
-      println(diffR);
-    }
-    rectMode(CENTER);
-    pushMatrix();
-    translate(sim[0], sim[1]);
-    rotate((diffR));
-    rect(0, 0, 20, 20);
-    popMatrix();
   }
+
   if (botstart == 1) {
+    video.read();
+    tint(255, 50);
+    noTint();
     /*-----------------Perspective Transformation------------------------------------*/
-    //opencv = new OpenCV(this, videowidth, videoheight);
+    opencv = new OpenCV(this, videowidth, videoheight);
     opencv.loadImage(video);
     opencv.toPImage(warpPerspective(tilepoints, floorWidth, floorHeight), birdseye);
+    image(birdseye, 0, 0);
+    opencv = new OpenCV(this, floorWidth, floorHeight);
+    opencv = new OpenCV(this, birdseye);
+    opencv.threshold(50);
+
+    opencv.erode();
+    opencv.dilate();
+    threshold = opencv.getOutput();
+    image(threshold, 580, 0);
 
     /*-----------------Blob detection------------------------------------*/
     noFill(); 
     theBlobDetection = new BlobDetection(birdseye.width, birdseye.height);
     //theBlobDetection.setPosDiscrimination(true);
     //this needs to be adjusted depending on brightness present in video feed
-    theBlobDetection.setThreshold(0.65f);
+    theBlobDetection.setThreshold(0.37f);
     theBlobDetection.computeBlobs(birdseye.pixels);
     drawBlobs(true);
-    rectMode(CENTER);
-    fill(0, 0, 255);
-    rect(targetx, targety, 20, 20);
+
     /*----------------Direction and heading code------------------------------------*/
 
     //heading is calculated using the front blob and back blob - remember processing has a coordinate system with topright corner x=0, y=0
@@ -217,70 +247,135 @@ void draw() {
       if (scratchC == 1) {
         msg [4] = byte(2); //colour
         xbeeExplorer.lightson(msg);
+        c = color(255, 0, 0);
       }
       if (scratchC == 2) {
         msg[4] = byte(5);
         xbeeExplorer.lightson(msg);
+        c = color(255, 255, 0);
       }
       if (scratchC == 3) {
         msg [4] = byte(3); //colour
         xbeeExplorer.lightson(msg);
+        c = color(0, 255, 0);
       }
       if (scratchC == 4) {
         msg [4] = byte(4); //colour
         xbeeExplorer.lightson(msg);
+        c = color(0, 0, 255);
       }
       if (scratchC == 5) {
         msg [4] = byte(6); //colour
         xbeeExplorer.lightson(msg);
+        c = color(255, 0, 255);
       }
       if (scratchC == 6) {
         xbeeExplorer.lightsoff(msg);
+        c = color(255);
       }
-    }
-    if ((((heading-newscratchR)<-5)||((heading-newscratchR)>5))&&(forward == false)) {
-      turn = true;
-      botT = 0;
-      println("turn triggered");
     }
 
-    if (turn) {
-      desiredheading = newscratchR;
-      float turnvar = (newscratchR-heading);
-      if (((turnvar >= -180)&& (turnvar<=0))||(turnvar>=180)) {
-        xbeeExplorer.turnleft(msg);
-      } else {
-        xbeeExplorer.turnright(msg);
+    lastscratchC = int(scratchC);
+
+    if (move) {
+      if ((((heading-desiredheading)<-5)||((heading-desiredheading)>5))&&(turn == false)&&(forward == false)) {
+        turn = true;
+        forward = false;
+        botT = 0;
+        println("turn triggered");
       }
-      //allows for below or above 5 degrees from desired heading
-      if ((heading >= (desiredheading-3))&&(heading <= (desiredheading+3))) {
-        //reset turn
-        turn = false;
-        xbeeExplorer.still(msg);
-        botT = 1;
-        println("turn off");
+      if ((((heading-desiredheading)<-10)||((heading-desiredheading)>10))&&(turn == false)) {
+        turn = true;
+        forward = false;
+        botT = 0;
+        println("turn triggered");
       }
-    }
-    float xdistance = targetx - fullblob[0];
-    float ydistance = targety - fullblob[1];
-    if ((forward == false)&&(turn == false)&&((xdistance<-5)||(xdistance>5)||(ydistance<-5)||(ydistance>5))) {
-      forward = true;
-      startx = fullblob[0];
-      starty = fullblob[1];
-      botT = 0;
-      println("forward triggered");
-    }
-    if (forward) {
-      println("moving forward");
-      xbeeExplorer.forward(msg);
-      if (((fullblob[0]-startx)>=xdistance)&&((fullblob[1]-starty)>=ydistance)) {
-        println("forward off");
+
+      int turnvar = int(desiredheading-heading);
+      if (turn) {
+        println("heading "+ heading + " desiredheading "+desiredheading);
+        if (((turnvar >= -180)&& (turnvar<=0))||(turnvar>=180)) {
+          xbeeExplorer.turnleft(msg);
+        } else {
+          xbeeExplorer.turnright(msg);
+        }
+        //allows for below or above 5 degrees from desired heading
+        if ((heading >= (desiredheading-3))&&(heading <= (desiredheading+3))) {
+          //reset turn
+          turn = false;
+          xbeeExplorer.still(msg);
+          println("turn off");
+        }
+      }
+
+      if ((forward == false)&&(turn == false)&&((lastscratchX!=newscratchX)||(lastscratchY!=newscratchY))) {
+        forward = true;
+        startx = (fullblob[0]);
+        starty = (fullblob[1]);
+        xdistance = int(newscratchX - fullblob[0]);
+        ydistance = int(newscratchY - fullblob[1]);
+        botT = 0;
+        println("forward triggered");
+      }
+
+      if (forward) {
+        println("moving forward");
+        println("x distance "+xdistance+" y distance "+ydistance);
+        println((fullblob[0]-startx) + "   "+ (fullblob[1]-starty));
+        xbeeExplorer.forward(msg);
+        if ((xdistance<0)&&(ydistance<0)) {
+          if (xdistance<ydistance) {
+            if ((fullblob[0]-startx)<=xdistance) {
+              move = false;
+            }
+          } else {
+            if ((fullblob[1]-starty)<=ydistance) {
+              move = false;
+            }
+          }
+        }
+        if ((xdistance>=0)&&(ydistance<0)) {
+          if ((ydistance*-1)>xdistance) {
+            if ((fullblob[1]-starty)<=ydistance) {
+              move = false;
+            }
+          } else {
+            if ((fullblob[0]-startx)>=xdistance) {
+              move = false;
+            }
+          }
+        }
+        if ((xdistance<0)&&(ydistance>=0)) {
+          if ((ydistance*-1)<xdistance) {
+            if ((fullblob[1]-starty)>=ydistance) {
+              move = false;
+            }
+          } else {
+            if ((fullblob[0]-startx)<=xdistance) {
+              move = false;
+            }
+          }
+        } else if ((xdistance>=0)&&(ydistance>=0)) {
+          if ((ydistance)>xdistance) {
+            if ((fullblob[1]-starty)>=ydistance) {
+              move = false;
+            }
+          } else {
+            if ((fullblob[0]-startx)>=xdistance) {
+              move = false;
+            }
+          }
+        }
+      }
+      if (move == false) {
         forward = false;
         xbeeExplorer.still(msg);
+        println("move false");
         botT = 1;
+        lastscratchX = newscratchX;
+        lastscratchY = newscratchY;
       }
     }
-
     //allows messages to be sent continously
     xbeeExplorer.relayMsg(msg);
 
@@ -293,16 +388,17 @@ void draw() {
     if ((fullblob[0] != 0)||(fullblob[1] != 0)) {
       stroke(c);
       fill(c);
-      ellipse(fullblob[0], fullblob[1], 40, 40);
+      //ellipse(fullblob[0], fullblob[1], 40, 40);
     }
 
+    if (((lastscratchX!=newscratchX)||(lastscratchY!=newscratchY))&&(move == false)) {
+      println("new target");
+      botT = 0;
+      desiredheading = degrees(atan2(newscratchY-fullblob[1], newscratchX-fullblob[0]));
+      move = true;
+    }
     fullblob[0]  = 0;
     fullblob[1] = 0;
-    lastscratchC = scratchC;
-    if (forward==false) {
-      lastscratchX = newscratchX;
-      lastscratchY = newscratchY;
-    }
   }
 }
 
@@ -320,7 +416,7 @@ void startServer() throws Exception
   context.addServlet(new ServletHolder(new ScratchRResponse()), "/scratchR/*"); 
   context.addServlet(new ServletHolder(new ScratchCResponse()), "/scratchC/*"); 
   context.addServlet(new ServletHolder(new ScratchstartResponse()), "/scratchstart/*");
-  context.addServlet(new ServletHolder(new ScratchreadyResponse()), "/scratchready/*");
+
   context.addServlet(new ServletHolder(new botstartResponse()), "/botstart/*");
   ResourceHandler resource_handler = new ResourceHandler();
   resource_handler.setDirectoriesListed(false); 
@@ -371,23 +467,21 @@ void drawBlobs(boolean drawBlobs)
   noFill();
   Blob b;
   int backblobnum = 0;
+  int frontblobnum = 0;
   frontblobarea = 0;
   backblobarea = 0;
   for (int n=0; n<theBlobDetection.getBlobNb (); n++)
   {
-
     b=theBlobDetection.getBlob(n);
-    fill(0, 255, 0);
-    rectMode(CORNER);
-    rect(b.xMin*floorWidth, b.yMin*floorHeight, b.w*floorWidth, b.h*floorHeight);
+    //fill(0, 255, 0);
+    //rectMode(CORNER);
+    //rect(b.xMin*floorWidth, b.yMin*floorHeight, b.w*floorWidth, b.h*floorHeight);
     float barea= b.w*floorWidth*b.h*floorHeight;
-    fill(255, 0, 0);
-    //ellipse(b.xMin*floorWidth, b.yMin*floorHeight, 5, 5);
     if (b!=null)
     {  
       //goes through the loop and finds the largest blob- this is the back blob
       if (barea>backblobarea) {
-        backblobarea = barea;
+        backblobarea = int(barea);
         //finds x and y coords
         backblob[0] = round(((b.xMin*floorWidth)+(b.w*floorWidth*0.5)));
         backblob[1] = round(((b.yMin*floorHeight)+(b.h*floorHeight*0.5)));
@@ -408,36 +502,59 @@ void drawBlobs(boolean drawBlobs)
         if (((round(((b.xMin*floorWidth)+(b.w*floorWidth*0.5)))-backblob[0])<40)&&((round(((b.xMin*floorWidth)+(b.w*floorWidth*0.5)))-backblob[0])>-40)) {
           if (((round(((b.yMin*floorHeight)+(b.h*floorHeight*0.5)))-backblob[1])<40)&&((round(((b.yMin*floorHeight)+(b.h*floorHeight*0.5)))-backblob[1])>-40)) {
             if (farea>frontblobarea) {
-              frontblobarea = farea;
+              frontblobarea = int(farea);
               ///finds x and y cooreds
               frontblob[0] = round(((b.xMin*floorWidth)+(b.w*floorWidth*0.5)));
               frontblob[1] = round(((b.yMin*floorHeight)+(b.h*floorHeight*0.5)));
+              frontblobnum = n;
             }
           }
         }
       }
     }
   }
-  if ((backblobarea>100)&&(frontblobarea>100)) {
 
-    fullblob[0] = (backblob[0]+frontblob[0])/2;
-    fullblob[1] = (backblob[1]+backblob[1])/2;
+  for (int ii = 0; ii<2; ii++) {
+    /*----------------------------  LIGHT PAINTING CODE--------------------------------------------------*/
+    b =theBlobDetection.getBlob(backblobnum);
+    if (b!=null) {
+      if (ii == 1) {
+        b =theBlobDetection.getBlob(frontblobnum);
+      }
+      int xMax = int(((b.xMin*floorWidth)+580) + (b.w*floorWidth*2));
+      int yMax = int((b.yMin*floorHeight) + (b.h*floorHeight*2));
+
+
+      for (int x = int(((b.xMin*floorWidth)+580)); x<xMax; x++ ) {
+        for (int y = int(b.yMin*floorHeight); y<yMax; y++) {
+
+          color c = get(x, y);
+
+          if (c==-1) {
+
+            tint(255, 200);
+            color botcol = get(x-580, y);
+            stroke(botcol, 40);
+            point(x+580, y);
+            noTint();
+          }
+        }
+      }
+    }
+  }
+  if ((backblobarea>100)||(frontblobarea>100)) {
+
+    fullblob[0] = int((backblob[0]+frontblob[0])/2);
+    fullblob[1] = int((backblob[1]+backblob[1])/2);
   } else {
     println("warning, the two blobs are not being detected");
   }
   //uncomment this code to check the front and back blob are being detected correctly - it will draw a green square around the blobs
-  rectMode(CENTER);
-  stroke(0);
-  //fill(255, 0, 0);
-  //rect(frontblob[0], frontblob[1], 20, 20);
-  //fill(0, 0, 255);
-  //rect(backblob[0], backblob[1], 20, 20);
 }
 
 //------------------------------------Funtion to refresh screen when mouse pressed----------------------------------
 void mousePressed() {
-  targetx = mouseX;
-  targety = mouseY;
+  background(255);
 }
 
 //------------------------------------Controls for the cube triggered by keypresses----------------------------------
@@ -457,6 +574,11 @@ void keyPressed() {
   }
   if (keyCode == SHIFT) {
     xbeeExplorer.still(msg);
+  }
+  if (key == 'p') {
+
+    screenshot = get(1156, 0, 578, 580);
+    screenshot.save("test.jpg");
   }
   if (key == 'l') {
     xbeeExplorer.lightsoff(msg);

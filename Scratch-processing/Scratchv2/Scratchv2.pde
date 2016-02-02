@@ -44,7 +44,7 @@ PImage birdseye;
 int floorWidth = 578;
 int floorHeight = 580;
 float turnfactor = 0;
-float diffR, lastx1, lasty1, lastx2, lasty2, lastx3, lasty3, lastx4, lastscratchC, lastscratchX, lastscratchY, distx, disty, startx, starty;
+float  diffR, lastx1, lasty1, lastx2, lasty2, lastx3, lasty3, lastx4, lastscratchC, lastscratchX, lastscratchY, distx, disty, startx, starty;
 int[] tile1 = {107, 159, 0};
 int[] tile2 = {285, 263, 0};
 int[] tile3 = {469, 178, 0};
@@ -54,10 +54,13 @@ int[] frontblob ={0, 0};
 int[] backblob = {0, 0};
 float[] fullblob = {0, 0};
 float simh = -90;
-int[] sim = {578/2, 580/2};
+float[] sim = {578/2, 580/2};
 float heading = 0;
 PVector dir = new PVector(0, 0);
 float stepsizex, stepsizey;
+float newscratchX = sim[0];
+float newscratchY = sim[1];
+float loop = 0;
 
 int movetime=0;
 float desiredheading = 0;
@@ -127,8 +130,10 @@ void draw() {
   botX = fullblob[0];
   botY = fullblob[1];
   botR = heading;
-  float newscratchX = (scratchX+(480/2))+50;
-  float newscratchY = ((scratchY-(360/2))*-1)+110;
+  float oldscratchX = newscratchX;
+  float oldscratchY = newscratchY;
+  newscratchX = (scratchX+(480/2))+50;
+  newscratchY = ((scratchY-(360/2))*-1)+110;
 
   if ((scratchR >=-90)&&(scratchR<=180)) {
     newscratchR = scratchR-90;
@@ -155,41 +160,32 @@ void draw() {
   }
 
   if ((scratchC != 6)&&(scratchstart == 1)) {
-    fill(c);
-    float diffx = newscratchX - sim[0];
-    float diffy = newscratchY - sim[1]; 
+    if ((newscratchX!=oldscratchX)||(newscratchY!=oldscratchY)) {
+      stepsizex = sim[0];
+      stepsizey = sim[1];
+      botT = 0;
+      println("x " + stepsizex+ " y "+ stepsizey);
+      println("sx " + newscratchX + " sy "+ newscratchY);
+      forward = true;
+    }
 
-    diffR = radians(newscratchR);
-  
-
-    println(stepsizex +"   "+stepsizey);
-    if ((diffx < -1)) {
-      botT = 0;
-      sim[0]-= stepsizex;
+    if (forward == true){
+      sim[0]  = lerp(stepsizex, newscratchX, loop/10.0);
+        sim[1] = lerp(stepsizey, newscratchY, loop/10.0);
+        fill(c);
+        rectMode(CENTER);
+        pushMatrix();
+        translate(sim[0], sim[1]);
+        rotate(radians(newscratchR));
+        rect(0, 0, 20, 20);
+        popMatrix();
+        loop++;
+        if (loop == 10){
+          loop = 0;
+          forward = false;
+          botT = 1;
+        }
     }
-    if ((diffx > 1)) {
-      botT = 0;
-      sim[0]+= stepsizex;
-    }
-    if ((diffy < -1)) {
-      botT = 0;
-      sim[1]-=stepsizey;
-    }
-    if ((diffy > 1)) {
-      botT = 0;
-      sim[1]+=stepsizey;
-    } else {
-      botT=1;
-    }
-    if (diffR!=0) {
-      println(diffR);
-    }
-    rectMode(CENTER);
-    pushMatrix();
-    translate(sim[0], sim[1]);
-    rotate((diffR));
-    rect(0, 0, 20, 20);
-    popMatrix();
   }
   if (botstart == 1) {
     /*-----------------Perspective Transformation------------------------------------*/
