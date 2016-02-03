@@ -47,10 +47,10 @@ PImage birdseye, threshold, screenshot;
 int floorWidth = 580;
 int floorHeight = 580;
 int lastscratchC, startx, starty;
-int[] tile1 = {110, 185, 0};
-int[] tile2 = {290, 279, 0};
-int[] tile3 = {469, 187, 0};
-int[] tile4 = {278, 100, 0};
+int[] tile1 = {101, 200, 0};
+int[] tile2 = {283, 293, 0};
+int[] tile3 = {460, 197, 0};
+int[] tile4 = {269, 115, 0};
 int[][] tilepoints = {tile1, tile2, tile3, tile4}; 
 int[] frontblob ={0, 0};
 int[] backblob = {0, 0};
@@ -68,11 +68,7 @@ boolean start;
 
 void settings() {
   botstart = 1;
-  if (botstart == 1) {
-    size(3*floorWidth, floorHeight);
-  } else {
-    size(floorWidth, floorHeight);
-  }
+  size(floorWidth, floorHeight);
 }
 void setup() {
   try {
@@ -112,9 +108,7 @@ void setup() {
   botstart = 0;
   scratchstart = 0;
 
-  background(255);
-  msg [4] = byte(3); //colour
-  xbeeExplorer.lightson(msg);
+
   if (scratchC == 1) {
     c = color(255, 0, 0);
   }
@@ -122,9 +116,13 @@ void setup() {
     c = color(255, 255, 0);
   }
   if (scratchC == 3) {
+    msg [4] = byte(3); //colour
+    xbeeExplorer.lightson(msg);
     c = color(0, 255, 0);
   }
   if (scratchC == 4) {
+    msg [4] = byte(4); //colour
+    xbeeExplorer.lightson(msg);
     c = color(0, 0, 255);
   }
   if (scratchC == 5) {
@@ -139,21 +137,20 @@ void setup() {
   opencv = new OpenCV(this, videowidth, videoheight);
   opencv.loadCascade(OpenCV.CASCADE_FRONTALFACE); 
   video.start();
-
-  start = false;
-  botstart = 1;
+  delay(3000);
+  if ((botstart == 1)) {
+    opencv = new OpenCV(this, videowidth, videoheight);
+    opencv.loadImage(video); 
+    opencv.toPImage(warpPerspective(tilepoints, floorWidth, floorHeight), birdseye);
+    image(birdseye, 0, 0);
+  }
+  if ((scratchstart == 1)) {
+    background(0);
+  }
 }
 
 void draw() {
-  if ((botstart == 1)&&(start == false)) {
-    opencv.loadImage(video); 
-    opencv.toPImage(warpPerspective(tilepoints, floorWidth, floorHeight), birdseye);
-    image(birdseye, 1156, 0);
-  }
-  if ((scratchstart == 1)&&(start == false)) {
-    background(0);
-  }
-  start = true;
+
   float oldscratchX = newscratchX;
   float oldscratchY = newscratchY;
   newscratchX = (scratchX+(480/2))+50;
@@ -203,7 +200,7 @@ void draw() {
         noStroke();
         translate(sim[0], sim[1]);
         rotate(radians(newscratchR));
-        rect(0, 0, 30, 30);
+        rect(0, 0, 45, 45);
         popMatrix();
       }
       forward= false;
@@ -219,22 +216,24 @@ void draw() {
     opencv = new OpenCV(this, videowidth, videoheight);
     opencv.loadImage(video);
     opencv.toPImage(warpPerspective(tilepoints, floorWidth, floorHeight), birdseye);
-    image(birdseye, 0, 0);
     opencv = new OpenCV(this, floorWidth, floorHeight);
     opencv = new OpenCV(this, birdseye);
     opencv.threshold(50);
-
     opencv.erode();
-    opencv.dilate();
+    //opencv.dilate();
     threshold = opencv.getOutput();
-    image(threshold, 580, 0);
 
     /*-----------------Blob detection------------------------------------*/
     noFill(); 
     theBlobDetection = new BlobDetection(birdseye.width, birdseye.height);
     //theBlobDetection.setPosDiscrimination(true);
     //this needs to be adjusted depending on brightness present in video feed
-    theBlobDetection.setThreshold(0.37f);
+    if ((scratchC == 3)||(scratchC == 4)||(scratchC == 5)) {
+      theBlobDetection.setThreshold(0.7f);
+    }
+    if (scratchC == 1) {
+      theBlobDetection.setThreshold(0.55f);
+    }
     theBlobDetection.computeBlobs(birdseye.pixels);
     drawBlobs(true);
 
@@ -521,21 +520,22 @@ void drawBlobs(boolean drawBlobs)
       if (ii == 1) {
         b =theBlobDetection.getBlob(frontblobnum);
       }
-      int xMax = int(((b.xMin*floorWidth)+580) + (b.w*floorWidth*2));
+      int xMax = int(((b.xMin*floorWidth)) + (b.w*floorWidth*2));
       int yMax = int((b.yMin*floorHeight) + (b.h*floorHeight*2));
 
 
-      for (int x = int(((b.xMin*floorWidth)+580)); x<xMax; x++ ) {
+      for (int x = int(((b.xMin*floorWidth))); x<xMax; x++ ) {
         for (int y = int(b.yMin*floorHeight); y<yMax; y++) {
 
-          color c = get(x, y);
+          threshold.loadPixels();
+          color c = threshold.pixels[((threshold.width*(y-1))+x)];
 
           if (c==-1) {
-
             tint(255, 200);
-            color botcol = get(x-580, y);
+            birdseye.loadPixels();
+            color botcol = birdseye.pixels[((birdseye.width*(y-1))+x)];
             stroke(botcol, 40);
-            point(x+580, y);
+            point(x, y);
             noTint();
           }
         }
@@ -554,7 +554,7 @@ void drawBlobs(boolean drawBlobs)
 
 //------------------------------------Funtion to refresh screen when mouse pressed----------------------------------
 void mousePressed() {
-  background(255);
+  background(0);
 }
 
 //------------------------------------Controls for the cube triggered by keypresses----------------------------------
@@ -577,7 +577,7 @@ void keyPressed() {
   }
   if (key == 'p') {
 
-    screenshot = get(1156, 0, 578, 580);
+    screenshot = get(0, 0, 580, 580);
     screenshot.save("test.jpg");
   }
   if (key == 'l') {
