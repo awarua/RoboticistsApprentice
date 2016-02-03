@@ -47,10 +47,10 @@ PImage birdseye, threshold, screenshot;
 int floorWidth = 580;
 int floorHeight = 580;
 int lastscratchC, startx, starty;
-int[] tile1 = {101, 200, 0};
-int[] tile2 = {283, 293, 0};
-int[] tile3 = {460, 197, 0};
-int[] tile4 = {269, 115, 0};
+int[] tile1 = {78, 207, 0};
+int[] tile2 = {267, 292, 0};
+int[] tile3 = {438, 190, 0};
+int[] tile4 = {245, 115, 0};
 int[][] tilepoints = {tile1, tile2, tile3, tile4}; 
 int[] frontblob ={0, 0};
 int[] backblob = {0, 0};
@@ -138,6 +138,7 @@ void setup() {
   opencv.loadCascade(OpenCV.CASCADE_FRONTALFACE); 
   video.start();
   delay(3000);
+
   if ((botstart == 1)) {
     opencv = new OpenCV(this, videowidth, videoheight);
     opencv.loadImage(video); 
@@ -231,8 +232,8 @@ void draw() {
     if ((scratchC == 3)||(scratchC == 4)||(scratchC == 5)) {
       theBlobDetection.setThreshold(0.7f);
     }
-    if (scratchC == 1) {
-      theBlobDetection.setThreshold(0.55f);
+    if ((scratchC == 1)||(scratchC==2)) {
+      theBlobDetection.setThreshold(0.5f);
     }
     theBlobDetection.computeBlobs(birdseye.pixels);
     drawBlobs(true);
@@ -533,7 +534,16 @@ void drawBlobs(boolean drawBlobs)
           if (c==-1) {
             tint(255, 200);
             birdseye.loadPixels();
-            color botcol = birdseye.pixels[((birdseye.width*(y-1))+x)];
+            colorMode(HSB, 100);
+            float h, s, d;
+            h = hue (birdseye.pixels[((birdseye.width*(y-1))+x)]);
+            s = saturation (birdseye.pixels[((birdseye.width*(y-1))+x)]);
+            d = brightness (birdseye.pixels[((birdseye.width*(y-1))+x)]);
+            d = d*0.8;
+            s = s*7;
+            
+           color botcol = color(h, s, d);
+            //color botcol = birdseye.pixels[((birdseye.width*(y-1))+x)];
             stroke(botcol, 40);
             point(x, y);
             noTint();
@@ -554,7 +564,7 @@ void drawBlobs(boolean drawBlobs)
 
 //------------------------------------Funtion to refresh screen when mouse pressed----------------------------------
 void mousePressed() {
-  background(0);
+  //background(0);
 }
 
 //------------------------------------Controls for the cube triggered by keypresses----------------------------------
@@ -579,6 +589,7 @@ void keyPressed() {
 
     screenshot = get(0, 0, 580, 580);
     screenshot.save("test.jpg");
+    
   }
   if (key == 'l') {
     xbeeExplorer.lightsoff(msg);
