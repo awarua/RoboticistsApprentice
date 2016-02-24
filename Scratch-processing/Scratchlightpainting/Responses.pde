@@ -136,6 +136,21 @@ public class botstartResponse extends HttpServlet {
     out.println(simpleHtmlPage("scratchC"));
   }
 }
+public class takepicResponse extends HttpServlet {
+
+  @Override public void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+    response.setContentType("text/html");
+    PrintWriter out = response.getWriter();
+
+    String pstart = request.getPathInfo().split("/")[1];
+    takepic = Float.parseFloat(pstart);
+    
+    
+   // println(scratchC);
+    
+    out.println(simpleHtmlPage("takepic"));
+  }
+}
 String simpleHtmlPage(String title) {
   return "<!DOCTYPE html>" + "\n"
     + "<html>\n"

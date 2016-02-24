@@ -29,6 +29,7 @@ float scratchR;
 float scratchC;
 float scratchstart;
 float botstart;
+float takepic;
 float botX, botY, botR, newscratchR, botT;
 int xdistance = 0;
 int ydistance = 0;
@@ -47,10 +48,10 @@ PImage birdseye, threshold, screenshot;
 int floorWidth = 580;
 int floorHeight = 580;
 int lastscratchC, startx, starty;
-int[] tile1 = {78, 207, 0};
-int[] tile2 = {267, 292, 0};
-int[] tile3 = {438, 190, 0};
-int[] tile4 = {245, 115, 0};
+int[] tile1 = {156, 190, 0};
+int[] tile2 = {319, 303, 0};
+int[] tile3 = {509, 229, 0};
+int[] tile4 = {328, 125, 0};
 int[][] tilepoints = {tile1, tile2, tile3, tile4}; 
 int[] frontblob ={0, 0};
 int[] backblob = {0, 0};
@@ -67,7 +68,7 @@ float newscratchY = sim[1];
 boolean start;
 
 void settings() {
-  botstart = 1;
+
   size(floorWidth, floorHeight);
 }
 void setup() {
@@ -98,7 +99,7 @@ void setup() {
   // [8] seqno:  (just checks that this seqno != seqno of previous).
   // [9] crc: Global variable sent & incremeneted with each xBee message.
 
-
+    xbeeExplorer.lightsoff(msg);
   //initialize variables for scratch
   botT = 0;
   scratchX = 0;
@@ -107,6 +108,7 @@ void setup() {
   scratchC = 0;
   botstart = 0;
   scratchstart = 0;
+  takepic = 0;
 
 
   if (scratchC == 1) {
@@ -117,12 +119,12 @@ void setup() {
   }
   if (scratchC == 3) {
     msg [4] = byte(3); //colour
-    xbeeExplorer.lightson(msg);
+ 
     c = color(0, 255, 0);
   }
   if (scratchC == 4) {
     msg [4] = byte(4); //colour
-    xbeeExplorer.lightson(msg);
+   
     c = color(0, 0, 255);
   }
   if (scratchC == 5) {
@@ -138,20 +140,30 @@ void setup() {
   opencv.loadCascade(OpenCV.CASCADE_FRONTALFACE); 
   video.start();
   delay(3000);
-
+  //botT = 1;
   if ((botstart == 1)) {
+    xbeeExplorer.lightsoff(msg);
+    delay(3000);
+    xbeeExplorer.lightsoff(msg);
     opencv = new OpenCV(this, videowidth, videoheight);
     opencv.loadImage(video); 
     opencv.toPImage(warpPerspective(tilepoints, floorWidth, floorHeight), birdseye);
     image(birdseye, 0, 0);
+    delay(4000);
   }
   if ((scratchstart == 1)) {
     background(0);
   }
+  msg [4] = byte(1); //colour
+  xbeeExplorer.lightson(msg);
 }
 
 void draw() {
-
+  if (takepic == 1) {
+    println("TAKING PIC");
+    screenshot = get(0, 0, 580, 580);
+    screenshot.save("VREStest2.jpg");
+  }
   float oldscratchX = newscratchX;
   float oldscratchY = newscratchY;
   newscratchX = (scratchX+(480/2))+50;
@@ -164,13 +176,14 @@ void draw() {
   }
 
 
-  if ((scratchC != 6)&&(scratchstart == 1)) {
+  if ((scratchstart == 1)) {
     if ((newscratchX!=oldscratchX)||(newscratchY!=oldscratchY)) {
       startx = int(sim[0]);
       starty = int(sim[1]);
       botT = 0;
 
       forward = true;
+      println("new target");
     }
 
     if (forward == true) {
@@ -192,7 +205,9 @@ void draw() {
       if (scratchC == 6) {
         c = color(255);
       }
+
       for (int loop = 0; loop <= 10; loop++) {
+
         sim[0]  = int(lerp(startx, newscratchX, loop/10.0));
         sim[1] = int(lerp(starty, newscratchY, loop/10.0));
         fill(c);
@@ -201,11 +216,14 @@ void draw() {
         noStroke();
         translate(sim[0], sim[1]);
         rotate(radians(newscratchR));
-        rect(0, 0, 45, 45);
+        if (scratchC !=6) {
+          rect(0, 0, 45, 45);
+        }
         popMatrix();
       }
       forward= false;
       botT = 1;
+      println("moved forward");
     }
   }
 
@@ -229,11 +247,17 @@ void draw() {
     theBlobDetection = new BlobDetection(birdseye.width, birdseye.height);
     //theBlobDetection.setPosDiscrimination(true);
     //this needs to be adjusted depending on brightness present in video feed
-    if ((scratchC == 3)||(scratchC == 4)||(scratchC == 5)) {
+    if ((scratchC == 5)) {
       theBlobDetection.setThreshold(0.7f);
     }
-    if ((scratchC == 1)||(scratchC==2)) {
+    if ((scratchC == 4)||(scratchC == 6)){
+      theBlobDetection.setThreshold(0.6f);
+    }
+    if ((scratchC==2)||(scratchC == 3)) {
       theBlobDetection.setThreshold(0.5f);
+    }
+    if ((scratchC == 1)) {
+      theBlobDetection.setThreshold(0.4f);
     }
     theBlobDetection.computeBlobs(birdseye.pixels);
     drawBlobs(true);
@@ -270,21 +294,21 @@ void draw() {
         c = color(255, 0, 255);
       }
       if (scratchC == 6) {
-        xbeeExplorer.lightsoff(msg);
+        msg [4] = byte(1); //colour
+        xbeeExplorer.lightson(msg);
         c = color(255);
       }
     }
-
     lastscratchC = int(scratchC);
 
     if (move) {
-      if ((((heading-desiredheading)<-5)||((heading-desiredheading)>5))&&(turn == false)&&(forward == false)) {
+      if ((((heading-desiredheading)<-9)||((heading-desiredheading)>9))&&(turn == false)&&(forward == false)) {
         turn = true;
         forward = false;
         botT = 0;
         println("turn triggered");
       }
-      if ((((heading-desiredheading)<-10)||((heading-desiredheading)>10))&&(turn == false)) {
+      if ((((heading-desiredheading)<-7)||((heading-desiredheading)>7))&&(turn == false)) {
         turn = true;
         forward = false;
         botT = 0;
@@ -416,7 +440,7 @@ void startServer() throws Exception
   context.addServlet(new ServletHolder(new ScratchRResponse()), "/scratchR/*"); 
   context.addServlet(new ServletHolder(new ScratchCResponse()), "/scratchC/*"); 
   context.addServlet(new ServletHolder(new ScratchstartResponse()), "/scratchstart/*");
-
+  context.addServlet(new ServletHolder(new takepicResponse()), "/takepic/*");
   context.addServlet(new ServletHolder(new botstartResponse()), "/botstart/*");
   ResourceHandler resource_handler = new ResourceHandler();
   resource_handler.setDirectoriesListed(false); 
@@ -513,46 +537,47 @@ void drawBlobs(boolean drawBlobs)
       }
     }
   }
+  if (scratchC != 6) {
+    for (int ii = 0; ii<2; ii++) {
+      /*----------------------------  LIGHT PAINTING CODE--------------------------------------------------*/
+      b =theBlobDetection.getBlob(backblobnum);
+      if (b!=null) {
+        if (ii == 1) {
+          b =theBlobDetection.getBlob(frontblobnum);
+        }
+        int xMax = int(((b.xMin*floorWidth)) + (b.w*floorWidth*2));
+        int yMax = int((b.yMin*floorHeight) + (b.h*floorHeight*2));
 
-  for (int ii = 0; ii<2; ii++) {
-    /*----------------------------  LIGHT PAINTING CODE--------------------------------------------------*/
-    b =theBlobDetection.getBlob(backblobnum);
-    if (b!=null) {
-      if (ii == 1) {
-        b =theBlobDetection.getBlob(frontblobnum);
-      }
-      int xMax = int(((b.xMin*floorWidth)) + (b.w*floorWidth*2));
-      int yMax = int((b.yMin*floorHeight) + (b.h*floorHeight*2));
 
+        for (int x = int(((b.xMin*floorWidth))); x<xMax; x++ ) {
+          for (int y = int(b.yMin*floorHeight); y<yMax; y++) {
 
-      for (int x = int(((b.xMin*floorWidth))); x<xMax; x++ ) {
-        for (int y = int(b.yMin*floorHeight); y<yMax; y++) {
+            threshold.loadPixels();
+            color c = threshold.pixels[((threshold.width*(y-1))+x)];
 
-          threshold.loadPixels();
-          color c = threshold.pixels[((threshold.width*(y-1))+x)];
+            if (c==-1) {
+              tint(255, 200);
+              birdseye.loadPixels();
+              colorMode(HSB, 100);
+              float h, s, d;
+              h = hue (birdseye.pixels[((birdseye.width*(y-1))+x)]);
+              s = saturation (birdseye.pixels[((birdseye.width*(y-1))+x)]);
+              d = brightness (birdseye.pixels[((birdseye.width*(y-1))+x)]);
+              d = d*0.8;
+              s = s*7;
 
-          if (c==-1) {
-            tint(255, 200);
-            birdseye.loadPixels();
-            colorMode(HSB, 100);
-            float h, s, d;
-            h = hue (birdseye.pixels[((birdseye.width*(y-1))+x)]);
-            s = saturation (birdseye.pixels[((birdseye.width*(y-1))+x)]);
-            d = brightness (birdseye.pixels[((birdseye.width*(y-1))+x)]);
-            d = d*0.8;
-            s = s*7;
-            
-           color botcol = color(h, s, d);
-            //color botcol = birdseye.pixels[((birdseye.width*(y-1))+x)];
-            stroke(botcol, 40);
-            point(x, y);
-            noTint();
+              color botcol = color(h, s, d);
+              //color botcol = birdseye.pixels[((birdseye.width*(y-1))+x)];
+              stroke(botcol, 40);
+              point(x, y);
+              noTint();
+            }
           }
         }
       }
     }
   }
-  if ((backblobarea>100)||(frontblobarea>100)) {
+  if ((backblobarea>150)||(frontblobarea>100)) {
 
     fullblob[0] = int((backblob[0]+frontblob[0])/2);
     fullblob[1] = int((backblob[1]+backblob[1])/2);
@@ -588,8 +613,7 @@ void keyPressed() {
   if (key == 'p') {
 
     screenshot = get(0, 0, 580, 580);
-    screenshot.save("test.jpg");
-    
+    screenshot.save("VRES2.jpg");
   }
   if (key == 'l') {
     xbeeExplorer.lightsoff(msg);
