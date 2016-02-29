@@ -44,14 +44,15 @@ int xbeeExplorerPort = 1;
 int baudRate = 57600;
 boolean forward = false;
 byte[] msg = new byte[10];
-PImage birdseye, threshold, screenshot; 
+PImage birdseye, threshold, screenshot, wsf; 
 int floorWidth = 580;
 int floorHeight = 580;
 int lastscratchC, startx, starty;
-int[] tile1 = {156, 190, 0};
-int[] tile2 = {319, 303, 0};
-int[] tile3 = {509, 229, 0};
-int[] tile4 = {328, 125, 0};
+int draw = 1;
+int[] tile1 = {61, 229, 0};
+int[] tile2 = {250, 314, 0};
+int[] tile3 = {424, 209, 0};
+int[] tile4 = {229, 136, 0};
 int[][] tilepoints = {tile1, tile2, tile3, tile4}; 
 int[] frontblob ={0, 0};
 int[] backblob = {0, 0};
@@ -69,7 +70,7 @@ boolean start;
 
 void settings() {
 
-  size(floorWidth, floorHeight);
+  size(floorWidth*2, floorHeight);
 }
 void setup() {
   try {
@@ -78,10 +79,12 @@ void setup() {
   catch (Exception e) {
     println("Exception starting server");
   }
+  
   //frameRate(100);
   //create the image to store thresholded and birdseye images into
   birdseye = createImage(580, 580, ARGB); 
   threshold = createImage(580, 580, ARGB);
+  wsf = loadImage("WSF.jpg");
 
   //open xbeeExplorer
   xbeeExplorer = new XBee(xbeeExplorerPort, baudRate, this);
@@ -149,10 +152,12 @@ void setup() {
     opencv.loadImage(video); 
     opencv.toPImage(warpPerspective(tilepoints, floorWidth, floorHeight), birdseye);
     image(birdseye, 0, 0);
+    image(birdseye, floorWidth, 0);
     delay(4000);
   }
   if ((scratchstart == 1)) {
     background(0);
+    image(wsf, width/2, 0);
   }
   msg [4] = byte(1); //colour
   xbeeExplorer.lightson(msg);
@@ -162,7 +167,7 @@ void draw() {
   if (takepic == 1) {
     println("TAKING PIC");
     screenshot = get(0, 0, 580, 580);
-    screenshot.save("VREStest2.jpg");
+    screenshot.save("VRESWSF1.jpg");
   }
   float oldscratchX = newscratchX;
   float oldscratchY = newscratchY;
@@ -227,7 +232,10 @@ void draw() {
     }
   }
 
-  if (botstart == 1) {
+  if (draw == 0){
+      xbeeExplorer.still(msg);
+  }
+  if ((botstart == 1)&&(draw == 1)) {
     video.read();
     tint(255, 50);
     noTint();
@@ -247,11 +255,20 @@ void draw() {
     theBlobDetection = new BlobDetection(birdseye.width, birdseye.height);
     //theBlobDetection.setPosDiscrimination(true);
     //this needs to be adjusted depending on brightness present in video feed
+    /* for nikon:
+    purple .7
+    white and blue .6
+    yellow and green .5
+    red .4
+    for canon:
+    yellow .4
+    red .35
+    */
     if ((scratchC == 5)) {
       theBlobDetection.setThreshold(0.7f);
     }
     if ((scratchC == 4)||(scratchC == 6)){
-      theBlobDetection.setThreshold(0.6f);
+      theBlobDetection.setThreshold(0.6);
     }
     if ((scratchC==2)||(scratchC == 3)) {
       theBlobDetection.setThreshold(0.5f);
@@ -408,12 +425,7 @@ void draw() {
       botT = 0;
     }
 
-    /*---------------------------------Drawing Code--------------------------------------------------------------*/
-    if ((fullblob[0] != 0)||(fullblob[1] != 0)) {
-      stroke(c);
-      fill(c);
-      //ellipse(fullblob[0], fullblob[1], 40, 40);
-    }
+/*------check for new target-----------------*/
 
     if (((lastscratchX!=newscratchX)||(lastscratchY!=newscratchY))&&(move == false)) {
       println("new target");
@@ -570,6 +582,7 @@ void drawBlobs(boolean drawBlobs)
               //color botcol = birdseye.pixels[((birdseye.width*(y-1))+x)];
               stroke(botcol, 40);
               point(x, y);
+              point(x+floorWidth, y);
               noTint();
             }
           }
@@ -611,11 +624,18 @@ void keyPressed() {
     xbeeExplorer.still(msg);
   }
   if (key == 'p') {
-
-    screenshot = get(0, 0, 580, 580);
-    screenshot.save("VRES2.jpg");
+     draw = 0;
+  }
+  if (key == 's'){
+    draw = 1;
   }
   if (key == 'l') {
     xbeeExplorer.lightsoff(msg);
+  }
+  if (key == 'e'){
+    for (int ii = 0; ii < 511; ii++){
+      tint(255, (ii/2));
+      image(wsf, 0, 0);
+    }
   }
 }
