@@ -37,8 +37,8 @@ class XBee {
   }
   
   void forward(byte[] msg){
-    msg[4] = 90;
-    msg[5] = 90;
+    msg[4] = 92;
+    msg[5] = 92;
     relayMsg(msg);
   }
   

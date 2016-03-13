@@ -9,7 +9,7 @@
 		["r", "CubeBot heading",                  "botR"],
 		["r", "CubeBot Ready",					  "botT"],
 		[" ", "set CubeBot x position to %n",     "scratchX", 0],
-		[" ", "set Scratch Ready to %n",     "scratchready", 0],
+		[" ", "set Reset to %n",     "reset", 0],
 		[" ", "set CubeBot y position to %n",     "scratchY", 0],
 		[" ", "set CubeBot heading to %n",        "scratchR", 0],
 		[" ", "set CubeBot colour to %n",        "scratchC", 0],

@@ -91,6 +91,21 @@ public class ScratchRResponse extends HttpServlet {
     out.println(simpleHtmlPage("scratchR"));
   }
 }
+public class ResetResponse extends HttpServlet {
+
+  @Override public void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+    response.setContentType("text/html");
+    PrintWriter out = response.getWriter();
+
+    String strRe = request.getPathInfo().split("/")[1];
+    reset = Float.parseFloat(strRe);
+    
+    
+    //println(scratchR);
+    
+    out.println(simpleHtmlPage("scratchR"));
+  }
+}
 public class ScratchCResponse extends HttpServlet {
 
   @Override public void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {

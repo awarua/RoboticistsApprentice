@@ -28,6 +28,7 @@ float scratchY;
 float scratchR;
 float scratchC;
 float scratchstart;
+float reset;
 float botstart;
 float takepic;
 float botX, botY, botR, newscratchR, botT;
@@ -49,10 +50,10 @@ int floorWidth = 580;
 int floorHeight = 580;
 int lastscratchC, startx, starty;
 int draw = 1;
-int[] tile1 = {108, 290, 0};
-int[] tile2 = {292, 374, 0};
-int[] tile3 = {467, 265, 0};
-int[] tile4 = {269, 195, 0};
+int[] tile1 = {91, 212, 0};
+int[] tile2 = {278, 304, 0};
+int[] tile3 = {449, 208, 0};
+int[] tile4 = {260, 124, 0};
 int[][] tilepoints = {tile1, tile2, tile3, tile4}; 
 int[] frontblob ={0, 0};
 int[] backblob = {0, 0};
@@ -98,6 +99,7 @@ void setup() {
   botstart = 0;
   scratchstart = 0;
   takepic = 0;
+  reset = 0;
 
   //loads original video into opencv
   video = new Capture(this, videowidth, videoheight);
@@ -146,7 +148,7 @@ void draw() {
   if (takepic == 1) {
     println("TAKING PIC");
     screenshot = get(0, 0, 580, 580);
-    screenshot.save("VRESpeace.jpg");
+    screenshot.save("group14a.jpg");
   }
   float oldscratchX = newscratchX;
   float oldscratchY = newscratchY;
@@ -161,6 +163,13 @@ void draw() {
 
 
   if ((scratchstart == 1)) {
+    if (reset == 1){
+      println("reset");
+      fill(0);
+      rectMode(CORNER);
+      rect(0,0,580,580);
+    }
+    
     if ((newscratchX!=oldscratchX)||(newscratchY!=oldscratchY)) {
       startx = int(sim[0]);
       starty = int(sim[1]);
@@ -244,16 +253,16 @@ void draw() {
      red .35
      */
     if ((scratchC == 5)) {
-      theBlobDetection.setThreshold(0.5f);
+      theBlobDetection.setThreshold(0.6f);
     }
     if ((scratchC == 6)) {
-      theBlobDetection.setThreshold(0.5f);
+      theBlobDetection.setThreshold(0.55f);
     }
     if ((scratchC==2)||(scratchC == 3)||(scratchC == 4)) {
-      theBlobDetection.setThreshold(0.35f);
+      theBlobDetection.setThreshold(0.57f);
     }
     if ((scratchC == 1)) {
-      theBlobDetection.setThreshold(0.25f);
+      theBlobDetection.setThreshold(0.5f);
     }
     theBlobDetection.computeBlobs(birdseye.pixels);
     drawBlobs(true);
@@ -266,7 +275,7 @@ void draw() {
     
 
     if (move) {
-      if ((((heading-desiredheading)<-9)||((heading-desiredheading)>9))&&(turn == false)&&(forward == false)) {
+      if ((((heading-desiredheading)<-5)||((heading-desiredheading)>5))&&(turn == false)&&(forward == false)) {
         turn = true;
         forward = false;
         botT = 0;
@@ -383,14 +392,26 @@ void draw() {
       if (scratchC == 1) {
         msg [4] = byte(2); //colour
         xbeeExplorer.lightson(msg);
+        msg [4] = byte(2); //colour
+        xbeeExplorer.lightson(msg);
+        msg [4] = byte(2); //colour
+        xbeeExplorer.lightson(msg);
         c = color(255, 0, 0);
       }
       if (scratchC == 2) {
         msg[4] = byte(5);
         xbeeExplorer.lightson(msg);
+         msg[4] = byte(5);
+        xbeeExplorer.lightson(msg);
+         msg[4] = byte(5);
+        xbeeExplorer.lightson(msg);
         c = color(255, 255, 0);
       }
       if (scratchC == 3) {
+        msg [4] = byte(3); //colour
+        xbeeExplorer.lightson(msg);
+        msg [4] = byte(3); //colour
+        xbeeExplorer.lightson(msg);
         msg [4] = byte(3); //colour
         xbeeExplorer.lightson(msg);
         c = color(0, 255, 0);
@@ -398,14 +419,26 @@ void draw() {
       if (scratchC == 4) {
         msg [4] = byte(4); //colour
         xbeeExplorer.lightson(msg);
+        msg [4] = byte(4); //colour
+        xbeeExplorer.lightson(msg);
+        msg [4] = byte(4); //colour
+        xbeeExplorer.lightson(msg);
         c = color(0, 0, 255);
       }
       if (scratchC == 5) {
         msg [4] = byte(6); //colour
         xbeeExplorer.lightson(msg);
+        msg [4] = byte(6); //colour
+        xbeeExplorer.lightson(msg);
+         msg [4] = byte(6); //colour
+        xbeeExplorer.lightson(msg);
         c = color(255, 0, 255);
       }
       if (scratchC == 6) {
+        msg [4] = byte(1); //colour
+        xbeeExplorer.lightson(msg);
+        msg [4] = byte(1); //colour
+        xbeeExplorer.lightson(msg);
         msg [4] = byte(1); //colour
         xbeeExplorer.lightson(msg);
         c = color(255);
@@ -432,6 +465,7 @@ void startServer() throws Exception
   context.addServlet(new ServletHolder(new ScratchRResponse()), "/scratchR/*"); 
   context.addServlet(new ServletHolder(new ScratchCResponse()), "/scratchC/*"); 
   context.addServlet(new ServletHolder(new ScratchstartResponse()), "/scratchstart/*");
+  context.addServlet(new ServletHolder(new ResetResponse()), "/reset/*");
   context.addServlet(new ServletHolder(new takepicResponse()), "/takepic/*");
   context.addServlet(new ServletHolder(new botstartResponse()), "/botstart/*");
   ResourceHandler resource_handler = new ResourceHandler();
@@ -620,10 +654,15 @@ void keyPressed() {
     xbeeExplorer.lightsoff(msg);
   }
   if (key == 'e') {
-    for (int ii = 0; ii < 511; ii++) {
-      tint(255, (ii/2));
-      image(wsf, width/2, 0);
-    }
+    fill(0);
+    rectMode(CORNER);
+    rect(width/2, 0, 580, 580);
+    image(wsf, width/2, 0);
+  }
+  if (key == 'q'){
+    println("TAKING PIC");
+    screenshot = get(0, 0, 580, 580);
+    screenshot.save("backup.jpg");
   }
 
 }
